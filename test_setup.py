@@ -165,19 +165,38 @@ async def test_exchange_connections():
         if "coinbase" in config.active_exchanges:
             if config.coinbase_api_key:
                 logger.info("Testing Coinbase API...")
-                exchange = ccxt.coinbase(exchange_config.get_coinbase_config())
+                
+                # Create exchange instance with specific settings
+                coinbase_config = exchange_config.get_coinbase_config()
+                coinbase_config['options']['defaultType'] = 'spot'
+                coinbase_config['timeout'] = 10000  # 10 second timeout
+                
+                exchange = ccxt.coinbase(coinbase_config)
                 
                 try:
-                    # Test public endpoint
-                    ticker = await exchange.fetch_ticker('BTC/USD')
+                    # Simple test - just fetch one ticker without loading all markets
+                    logger.info("Fetching BTC/USD ticker...")
+                    
+                    # Use asyncio.wait_for to add timeout
+                    ticker = await asyncio.wait_for(
+                        exchange.fetch_ticker('BTC/USD'),
+                        timeout=15.0
+                    )
                     logger.info(f"✅ Coinbase public API working - BTC/USD: ${ticker['last']:,.2f}")
                     
                     # Test private endpoint (if in live mode)
                     if config.trading_mode == "live":
-                        balance = await exchange.fetch_balance()
+                        logger.info("Testing private API...")
+                        balance = await asyncio.wait_for(
+                            exchange.fetch_balance(),
+                            timeout=15.0
+                        )
                         logger.info("✅ Coinbase private API working")
                     
                     results.append(True)
+                except asyncio.TimeoutError:
+                    logger.error("❌ Coinbase API timeout - check your internet connection")
+                    results.append(False)
                 except Exception as e:
                     logger.error(f"❌ Coinbase API error: {e}")
                     results.append(False)
@@ -190,19 +209,36 @@ async def test_exchange_connections():
         if "kraken" in config.active_exchanges:
             if config.kraken_api_key:
                 logger.info("\nTesting Kraken API...")
-                exchange = ccxt.kraken(exchange_config.get_kraken_config())
+                
+                # Create exchange instance with timeout
+                kraken_config = exchange_config.get_kraken_config()
+                kraken_config['timeout'] = 10000  # 10 second timeout
+                
+                exchange = ccxt.kraken(kraken_config)
                 
                 try:
-                    # Test public endpoint
-                    ticker = await exchange.fetch_ticker('BTC/USD')
+                    # Simple test - just fetch one ticker
+                    logger.info("Fetching BTC/USD ticker...")
+                    
+                    ticker = await asyncio.wait_for(
+                        exchange.fetch_ticker('BTC/USD'),
+                        timeout=15.0
+                    )
                     logger.info(f"✅ Kraken public API working - BTC/USD: ${ticker['last']:,.2f}")
                     
                     # Test private endpoint (if in live mode)
                     if config.trading_mode == "live":
-                        balance = await exchange.fetch_balance()
+                        logger.info("Testing private API...")
+                        balance = await asyncio.wait_for(
+                            exchange.fetch_balance(),
+                            timeout=15.0
+                        )
                         logger.info("✅ Kraken private API working")
                     
                     results.append(True)
+                except asyncio.TimeoutError:
+                    logger.error("❌ Kraken API timeout - check your internet connection")
+                    results.append(False)
                 except Exception as e:
                     logger.error(f"❌ Kraken API error: {e}")
                     results.append(False)

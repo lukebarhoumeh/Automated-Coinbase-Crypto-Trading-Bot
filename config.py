@@ -4,7 +4,7 @@ Loads settings from environment variables and provides validation.
 """
 
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import validator
@@ -59,8 +59,20 @@ class TradingConfig(BaseSettings):
     telegram_chat_id: Optional[str] = os.getenv("TELEGRAM_CHAT_ID", "")
     
     # Exchange Selection
-    active_exchanges: List[str] = os.getenv("ACTIVE_EXCHANGES", "coinbase,kraken").split(",")
-    primary_pairs: List[str] = os.getenv("PRIMARY_PAIRS", "WIF-USD,PEPE-USD,BONK-USD").split(",")
+    active_exchanges: Union[str, List[str]] = os.getenv("ACTIVE_EXCHANGES", "coinbase,kraken")
+    primary_pairs: Union[str, List[str]] = os.getenv("PRIMARY_PAIRS", "WIF-USD,PEPE-USD,BONK-USD")
+    
+    @validator("active_exchanges")
+    def parse_active_exchanges(cls, v):
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(",") if x.strip()]
+        return v or []
+    
+    @validator("primary_pairs")
+    def parse_primary_pairs(cls, v):
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(",") if x.strip()]
+        return v or []
     
     # Time Configuration
     timezone: str = os.getenv("TIMEZONE", "America/Chicago")
